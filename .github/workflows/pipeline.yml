@@ -1,0 +1,36 @@
+name: Pantry pipeline
+ 
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+ 
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run the tests
+        shell: bash
+        run: python -m unittest discover -s tests -v 2>&1 | tee test-report.txt
+      - name: Show the test report on the run page
+        if: always()
+        run: |
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat test-report.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Build the package
+        run: |
+          mkdir -p dist
+          cp app/*.py dist/
+          echo "Built from commit $GITHUB_SHA" > dist/BUILD_INFO.txt
+      - name: Upload the build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pantry-app
+          path: dist/
